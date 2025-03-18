@@ -1,26 +1,31 @@
-# Stage 1: Build Vite React App
-FROM node:18 AS builder
+# Copyright 2021 Google LLC
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#      http://www.apache.org/licenses/LICENSE-2.0
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
 
-# Set working directory inside container
-WORKDIR /app
+# Use the official lightweight Node.js image.
+# https://hub.docker.com/_/node
+FROM node:22-slim
 
-# Copy package.json and package-lock.json first (for efficient caching)
+# Create and change to the app directory.
+WORKDIR /usr/src/app
+
+# Copy application dependency manifests to the container image.
+# A wildcard is used to ensure both package.json AND package-lock.json are copied.
+# Copying this separately prevents re-running npm install on every code change.
 COPY package*.json ./
 
-# Install dependencies
-RUN npm install
+# Install dependencies.
+RUN npm ci --only=production
 
-# Copy the rest of the project files
-COPY . .
+# Copy local code to the container image.
+COPY . ./
 
-# Build the project
-RUN npm run build
-
-# Stage 2: Serve with Apache
-FROM httpd:latest
-
-# Copy the built Vite files to Apache's web root
-COPY --from=builder /app/dist/ /usr/local/apache2/htdocs/
-
-# Expose port 80
-EXPOSE 80
+# Run the web service on container startup.
+ENTRYPOINT [ "node", "index.js" ]
